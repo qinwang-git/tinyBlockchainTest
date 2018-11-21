@@ -4,9 +4,6 @@ package BLC
 // Thanks for the open source code abovementioned.
 
 import (
-	"bytes"
-	"crypto/sha256"
-	"strconv"
 	"time"
 )
 
@@ -17,31 +14,22 @@ type Block struct {
 	Data          []byte
 	TimeStamp     int64
 	Hash          []byte //  32字节，64个16进制数
+	Nonce         int64  //随机数
 
 }
 
 // the function of creating new block
 func NewBlock(data string, prevBlockHash []byte, height int64) *Block {
-	block := &Block{height, prevBlockHash, []byte(data), time.Now().Unix(), nil}
-	block.SetHash() // 设置hash 接后面func
+	//创建区块
+	block := &Block{height, prevBlockHash, []byte(data), time.Now().Unix(), nil, 0}
+
+	//调用工作量证明的方法，并且返回有效的Hash和Nonce
+	pow := NewProofOfWork(block)
+	hash, nonce := pow.Run()
+	block.Hash = hash
+	block.Nonce = nonce
+
 	return block
-}
-
-// set the hash
-func (block *Block) SetHash() {
-	heightBytes := IntToHex(block.Height) // 转换为字节数组
-	timeString := strconv.FormatInt(block.TimeStamp, 2)
-	timeBytes := []byte(timeString)
-	blockBytes := bytes.Join([][]byte{
-		heightBytes,
-		block.PrevBlockHash,
-		block.Data,
-		timeBytes},
-		[]byte{})
-
-	//4.生成哈希值
-	hash := sha256.Sum256(blockBytes) //数组长度32位
-	block.Hash = hash[:]
 }
 
 // genesis block
