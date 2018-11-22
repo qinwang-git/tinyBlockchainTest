@@ -4,10 +4,10 @@ package BLC
 // Thanks for the open source code abovementioned.
 
 import (
-	"time"
 	"bytes"
 	"encoding/gob"
 	"log"
+	"time"
 )
 
 // build Block Struct
@@ -43,26 +43,26 @@ func CreateGenesisBlock(data string) *Block {
 //将区块序列化，得到一个字节数组---区块的行为，设计为方法
 func (block *Block) Serilalize() []byte {
 	//创建一个buffer
-	var result byte.Buffer
+	var result bytes.Buffer
 	//创建一个编码器
-	encoder:=gob.NewEncoder(&result)
+	encoder := gob.NewEncoder(&result)
 	//编码--->打包
-	err:=encoder.Encode(block)
-	if err:=nil {
+	err := encoder.Encode(block)
+	if err != nil {
 		log.Panic(err)
 	}
 	return result.Bytes()
 }
 
 //反序列化，得到一个区块---设计为函数
-func DeserializeBlock(blockBytes []byte) *Block{
+func DeserializeBlock(blockBytes []byte) *Block {
 	var block Block
-	var reader=byte.NewReader(blockBytes)
+	var reader = bytes.NewReader(blockBytes)
 	//创建一个解码器
-	decoder:=gob.NewDecoder(reader)
+	decoder := gob.NewDecoder(reader)
 	//解包
-	err:=decoder.Decode(&block)
-	if err!=nil{
+	err := decoder.Decode(&block)
+	if err != nil {
 		log.Panic(err)
 	}
 	return &block

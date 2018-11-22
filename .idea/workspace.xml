@@ -3,7 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="e5979d07-9a00-4c39-a70b-52563916a690" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/BLC/Block.go" beforeDir="false" afterPath="$PROJECT_DIR$/BLC/Block.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/BLC/BlockChainIterator.go" beforeDir="false" afterPath="$PROJECT_DIR$/BLC/BlockChainIterator.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BLC/Blockchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/BLC/Blockchain.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BLC/Constant.go" beforeDir="false" afterPath="$PROJECT_DIR$/BLC/Constant.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -38,7 +40,7 @@
         <entry file="file://$PROJECT_DIR$/main.go">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="420">
-              <caret line="107" selection-start-line="107" selection-end-line="107" />
+              <caret line="108" selection-start-line="108" selection-end-line="108" />
             </state>
           </provider>
         </entry>
@@ -151,7 +153,7 @@
     <entry file="file://$PROJECT_DIR$/main.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="420">
-          <caret line="107" selection-start-line="107" selection-end-line="107" />
+          <caret line="108" selection-start-line="108" selection-end-line="108" />
         </state>
       </provider>
     </entry>

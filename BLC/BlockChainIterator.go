@@ -3,7 +3,7 @@ package BLC
 import (
 	"log"
 
-	"github.com/boltdb/bolt/"
+	"github.com/boltdb/bolt"
 )
 
 //新增结构体
