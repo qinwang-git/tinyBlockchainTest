@@ -21,7 +21,7 @@ type BlockChain struct {
 }
 
 // 创建带有创世区块的链
-func CreateBlockChainWithGenesisBlock(data string) *BlockChain {
+func CreateBlockChainWithGenesisBlock(data string) {
 
 	/*
 	   判断数据库是否存在。如果数据库存在：
@@ -38,29 +38,9 @@ func CreateBlockChainWithGenesisBlock(data string) *BlockChain {
 	//先判断数据库是否存在，如果有，从数据库读取
 	if dbExists() {
 		fmt.Println("数据库已经存在。。")
-		//打开数据库
-		db, err := bolt.Open(DBNAME, 0600, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-		var blockchain *BlockChain
-		//读取数据库
-		err = db.View(func(tx *bolt.Tx) error {
-			//打开表
-			b := tx.Bucket([]byte(BLOCKTABLENAME))
-			if b != nil {
-				//读取最后一个hash
-				hash := b.Get([]byte("l"))
-				//创建blockchain
-				blockchain = &BlockChain{hash, db}
-			}
-			return nil
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		return blockchain
+		return
 	}
+	fmt.Println("创建创世区块：", data)
 
 	//数据库不存在，说明第一次创建，然后存入到数据库中
 	fmt.Println("数据库不存在。。")
@@ -70,6 +50,8 @@ func CreateBlockChainWithGenesisBlock(data string) *BlockChain {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
+
 	//存入数据表
 	err = db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucket([]byte(BLOCKTABLENAME))
@@ -91,11 +73,11 @@ func CreateBlockChainWithGenesisBlock(data string) *BlockChain {
 	}
 
 	//返回区块链对象
-	return &BlockChain{genesisBlock.Hash, db}
+	//return &BlockChain{genesisBlock.Hash, db}
 }
 
 // 添加新区块入链
-func (bc *BlockChain) AddBlockToBlockChain(data string, height int64, prevHash []byte) {
+func (bc *BlockChain) AddBlockToBlockChain(data string) {
 	//创建新区块
 	//newBlock := NewBlock(data, prevHash, height)
 	//将newBlock添加切片至Block后面
@@ -205,4 +187,39 @@ func (bc *BlockChain) PrintChains() {
 			break
 		}
 	}
+}
+
+//获取区块链
+func GetBlockchainObject() *BlockChain {
+	/*
+	   1.如果数据库不存在，直接返回nil
+	   2.读取数据库
+	*/
+	if !dbExists() {
+		fmt.Println("数据库不存在，无法获取区块链。。")
+		return nil
+	}
+
+	db, err := bolt.Open(DBNAME, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var blockchain *BlockChain
+	//读取数据库
+	err = db.View(func(tx *bolt.Tx) error {
+		//打开表
+		b := tx.Bucket([]byte(BLOCKTABLENAME))
+		if b != nil {
+			//读取最后一个hash
+			hash := b.Get([]byte("l"))
+			//创建blockchain
+			blockchain = &BlockChain{hash, db}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return blockchain
 }
