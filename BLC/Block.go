@@ -5,6 +5,9 @@ package BLC
 
 import (
 	"time"
+	"bytes"
+	"encoding/gob"
+	"log"
 )
 
 // build Block Struct
@@ -35,4 +38,32 @@ func NewBlock(data string, prevBlockHash []byte, height int64) *Block {
 // genesis block
 func CreateGenesisBlock(data string) *Block {
 	return NewBlock(data, make([]byte, 32, 32), 0)
+}
+
+//将区块序列化，得到一个字节数组---区块的行为，设计为方法
+func (block *Block) Serilalize() []byte {
+	//创建一个buffer
+	var result byte.Buffer
+	//创建一个编码器
+	encoder:=gob.NewEncoder(&result)
+	//编码--->打包
+	err:=encoder.Encode(block)
+	if err:=nil {
+		log.Panic(err)
+	}
+	return result.Bytes()
+}
+
+//反序列化，得到一个区块---设计为函数
+func DeserializeBlock(blockBytes []byte) *Block{
+	var block Block
+	var reader=byte.NewReader(blockBytes)
+	//创建一个解码器
+	decoder:=gob.NewDecoder(reader)
+	//解包
+	err:=decoder.Decode(&block)
+	if err!=nil{
+		log.Panic(err)
+	}
+	return &block
 }
