@@ -3,6 +3,7 @@ package BLC
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"log"
 )
 
@@ -17,4 +18,13 @@ func IntToHex(num int64) []byte {
 	}
 	//转为[]byte并返回
 	return buff.Bytes()
+}
+
+//Json字符串转为[] string数组
+func JSONToArray(jsonString string) []string {
+	var sArr []string
+	if err := json.Unmarshal([]byte(jsonString), &sArr); err != nil {
+		log.Panic(err)
+	}
+	return sArr
 }

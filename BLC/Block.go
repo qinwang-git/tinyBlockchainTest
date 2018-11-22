@@ -5,6 +5,7 @@ package BLC
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"log"
 	"time"
@@ -14,7 +15,7 @@ import (
 type Block struct {
 	Height        int64
 	PrevBlockHash []byte
-	Data          []byte
+	Txs           []*Transaction
 	TimeStamp     int64
 	Hash          []byte //  32字节，64个16进制数
 	Nonce         int64  //随机数
@@ -22,9 +23,9 @@ type Block struct {
 }
 
 // the function of creating new block
-func NewBlock(data string, prevBlockHash []byte, height int64) *Block {
+func NewBlock(txs []*Transaction, prevBlockHash []byte, height int64) *Block {
 	//创建区块
-	block := &Block{height, prevBlockHash, []byte(data), time.Now().Unix(), nil, 0}
+	block := &Block{height, prevBlockHash, txs, time.Now().Unix(), nil, 0}
 
 	//调用工作量证明的方法，并且返回有效的Hash和Nonce
 	pow := NewProofOfWork(block)
@@ -36,8 +37,8 @@ func NewBlock(data string, prevBlockHash []byte, height int64) *Block {
 }
 
 // genesis block
-func CreateGenesisBlock(data string) *Block {
-	return NewBlock(data, make([]byte, 32, 32), 0)
+func CreateGenesisBlock(txs []*Transaction) *Block {
+	return NewBlock(txs, make([]byte, 32, 32), 0)
 }
 
 //将区块序列化，得到一个字节数组---区块的行为，设计为方法
@@ -66,4 +67,16 @@ func DeserializeBlock(blockBytes []byte) *Block {
 		log.Panic(err)
 	}
 	return &block
+}
+
+//将Txs转为[]byte
+func (block *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+	for _, tx := range block.Txs {
+		txHashes = append(txHashes, tx.TxID)
+	}
+
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	return txHash[:]
 }
