@@ -298,13 +298,15 @@ func (bc *BlockChain) UnUTXOs(address string, txs []*Transaction) []*UTXO {
 	for i := len(txs) - 1; i >= 0; i-- {
 		unUTXOs = caculate(txs[i], address, spentTxOutputs, unUTXOs)
 	}
+
+	//遍历block
 	bcIterator := bc.Iterator()
 	for {
 		block := bcIterator.Next()
 		//统计未花费
 		//获取block中的每个Transaction
 		for i := len(block.Txs) - 1; i >= 0; i-- {
-			unUTXOs = caculate(txs[i], address, spentTxOutputs, unUTXOs)
+			unUTXOs = caculate(block.Txs[i], address, spentTxOutputs, unUTXOs)
 		}
 
 		//结束迭代
@@ -317,8 +319,12 @@ func (bc *BlockChain) UnUTXOs(address string, txs []*Transaction) []*UTXO {
 	return unUTXOs
 }
 
+//先遍历TxInputs，表示花费，并存储进入spentTxOutputs
+//遍历TxOutputs，查找未被加入spentTxOutputs的交易
+//将遍历找出的交易加入unUTXOs
 func caculate(tx *Transaction, address string, spentTxOutputs map[string][]int, unUTXOs []*UTXO) []*UTXO {
 	//先遍历TxInputs，表示花费
+	//如果不是coinbase交易则存储该交易中的所有input信息
 	if !tx.IsCoinbaseTransaction() {
 		for _, in := range tx.Vins {
 			//如果解锁
@@ -331,20 +337,27 @@ func caculate(tx *Transaction, address string, spentTxOutputs map[string][]int, 
 
 outputs:
 	//遍历TxOutputs
+	//对比存储了Input信息的map，检查该输出是否已经被包含在一个交易的输入中，也就是检查它是否已经被花费
+	//如果output的下标以及当前交易的TxID，和map中存储的信息对应，那么表示该Output已经被花费掉
 	for index, out := range tx.Vouts {
+		//判断交易中的每个Output，如果该Output被一个地址锁定，并且这个地址恰好是我们要找的地址
 		if out.UnLockWithAddress(address) {
 			//如果对应的花费容器中长度不为0
 			if len(spentTxOutputs) != 0 {
+				//通过isSpentUTXO变量进行标记被花费
 				var isSpentUTXO bool
 
+				//如果output的下标以及当前交易的TxID，和map中存储的信息对应，那么表示该Output已经被花费掉
 				for txID, indexArray := range spentTxOutputs {
 					for _, i := range indexArray {
+						//检查该输出是否已经被包含在一个交易的输入中，也就是检查它是否已经被花费
 						if i == index && txID == hex.EncodeToString(tx.TxID) {
 							isSpentUTXO = true
 							continue outputs
 						}
 					}
 				}
+				//将给定地址所有能够解锁的Output，创建对应的UTXO，并存储到unUTXOs的数组
 				if !isSpentUTXO {
 					utxo := &UTXO{tx.TxID, index, out}
 					unUTXOs = append(unUTXOs, utxo)
@@ -382,6 +395,7 @@ func (bc *BlockChain) FindSpendableUTXOs(from string, amount int64, txs []*Trans
 	utxos := bc.UnUTXOs(from, txs)
 	spendableUTXO := make(map[string][]int)
 	for _, utxo := range utxos {
+		//统计总金额，如果大于本次要转账的金额，那么使用总金额减掉要转账的金额，就是本次交易的找零
 		balance += utxo.Output.Value
 		hash := hex.EncodeToString(utxo.TxID)
 		spendableUTXO[hash] = append(spendableUTXO[hash], utxo.Index)
@@ -390,6 +404,7 @@ func (bc *BlockChain) FindSpendableUTXOs(from string, amount int64, txs []*Trans
 		}
 
 	}
+	//总金额小于要转账的金额，那么表示余额不足，无法实现本次转账
 	if balance < amount {
 		fmt.Printf("%s 余额不足。。总额：%d，需要：%d\n", from, balance, amount)
 		os.Exit(1)

@@ -27,7 +27,7 @@ func (cli *CLI) Run() {
 	flagFromData := sendBlockCmd.String("from", "", "转帐源地址")
 	flagToData := sendBlockCmd.String("to", "", "转帐目标地址")
 	flagAmountData := sendBlockCmd.String("amount", "", "转帐金额")
-	flagCreateBlockChainData := createBlockChainCmd.String("data", "", "创世区块")
+	flagCreateBlockChainData := createBlockChainCmd.String("address", "", "创世区块")
 	flagGetBalanceData := getBalanceCmd.String("address", "", "要查询的某个账户的余额")
 
 	//解析
@@ -47,7 +47,7 @@ func (cli *CLI) Run() {
 		if err != nil {
 			log.Panic(err)
 		}
-	case "getBalance":
+	case "getbalance":
 		err := getBalanceCmd.Parse(os.Args[2:])
 		if err != nil {
 			log.Panic(err)

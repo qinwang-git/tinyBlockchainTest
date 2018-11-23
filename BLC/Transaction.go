@@ -52,7 +52,6 @@ func NewSimpleTransaction(from, to string, amount int64, bc *BlockChain, txs []*
 
 	//找零
 	txOutput2 := &TXOutput{balance - amount, from}
-
 	txOutputs = append(txOutputs, txOutput2)
 
 	tx := &Transaction{[]byte{}, txInputs, txOutputs}
