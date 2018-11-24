@@ -1,12 +1,17 @@
 package BLC
 
+import (
+	"bytes"
+)
+
 type TXOutput struct {
-	Value int64
-	//一个锁定脚本(ScriptPubKey)，要花这笔钱，必须要解锁该脚本。
-	ScriptPubKey string
+	Value      int64
+	PubKeyHash []byte // 公钥
 }
 
 //判断当前txOutput消费，和指定的address是否一致
 func (txOutput *TXOutput) UnLockWithAddress(address string) bool {
-	return txOutput.ScriptPubKey == address
+	fullPaylaodHash := Base58Decode([]byte(address))
+	pubKeyHash := fullPaylaodHash[1 : len(fullPaylaodHash)-4]
+	return bytes.Compare(txOutput.PubKeyHash, pubKeyHash) == 0
 }

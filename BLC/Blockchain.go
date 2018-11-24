@@ -1,6 +1,8 @@
 package BLC
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -186,12 +188,12 @@ func (bc *BlockChain) PrintChains() {
 			for _, in := range tx.Vins {
 				fmt.Printf("\t\t\tTxID:%x\n", in.TxID)
 				fmt.Printf("\t\t\tVout:%d\n", in.Vout)
-				fmt.Printf("\t\t\tScriptSiq:%s\n", in.ScriptSiq)
+				//fmt.Printf("\t\t\tScriptSiq:%s\n", in.ScriptSiq)
 			}
 			fmt.Println("\t\tVouts:")
 			for _, out := range tx.Vouts {
 				fmt.Printf("\t\t\tvalue:%d\n", out.Value)
-				fmt.Printf("\t\t\tScriptPubKey:%s\n", out.ScriptPubKey)
+				//fmt.Printf("\t\t\tScriptPubKey:%s\n", out.ScriptPubKey)
 			}
 		}
 
@@ -328,7 +330,10 @@ func caculate(tx *Transaction, address string, spentTxOutputs map[string][]int, 
 	if !tx.IsCoinbaseTransaction() {
 		for _, in := range tx.Vins {
 			//如果解锁
-			if in.UnlockWithAddress(address) {
+			fullPayloadHash := Base58Decode([]byte(address))
+			pubKeyHash := fullPayloadHash[1 : len(fullPayloadHash)-addressChecksumLen]
+
+			if in.UnlockWithAddress(pubKeyHash) {
 				key := hex.EncodeToString(in.TxID)
 				spentTxOutputs[key] = append(spentTxOutputs[key], in.Vout)
 			}
@@ -411,4 +416,48 @@ func (bc *BlockChain) FindSpendableUTXOs(from string, amount int64, txs []*Trans
 	}
 	return balance, spendableUTXO
 
+}
+
+func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey, txs []*Transaction) {
+	if tx.IsCoinbaseTransaction() {
+		return
+	}
+	prevTxs := make(map[string]*Transaction)
+	for _, vin := range tx.Vins {
+		prevTx := bc.FindTransactionByTxID(vin.TxID, txs)
+		prevTxs[hex.EncodeToString(prevTx.TxID)] = prevTx
+	}
+	tx.Sign(privKey, prevTxs)
+}
+
+func (bc *BlockChain) FindTransactionByTxID(txID []byte, txs []*Transaction) *Transaction {
+	iterator := bc.Iterator()
+	for _, tx := range txs {
+		if bytes.Compare(txID, tx.TxID) == 0 {
+			return tx
+		}
+	}
+	for {
+		block := iterator.Next()
+		for _, tx := range block.Txs {
+			if bytes.Compare(txID, tx.TxID) == 0 {
+				break
+			}
+		}
+		var hashInt big.Int
+		hashInt.SetBytes(block.PrevBlockHash)
+		if big.NewInt(0).Cmp(&hashInt) == 0 {
+			break
+		}
+	}
+	return &Transaction{}
+}
+
+func (bc *BlockChain) VerifyTransaction(tx *Transaction, txs []*Transaction) bool {
+	prevTxs := make(map[string]*Transaction)
+	for _, vin := range tx.Vins {
+		prevTx := bc.FindTransactionByTxID(vin.TxID, txs)
+		prevTxs[hex.EncodeToString(prevTx.TxID)] = prevTx
+	}
+	return tx.Verify(prevTxs)
 }
