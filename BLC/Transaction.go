@@ -28,8 +28,8 @@ Transaction 创建分两种情况
 */
 //Coinbase交易
 func NewCoinBaseTransaction(address string) *Transaction {
-	txInput := &TXInput{[]byte{}, -1, "Genesis Data"}
-	txOutput := &TXOutput{10, address}
+	txInput := &TXInput{[]byte{}, -1, nil, []byte{}}
+	txOutput := NewTXOuput(10, address)
 	txCoinbase := &Transaction{[]byte{}, []*TXInput{txInput}, []*TXOutput{txOutput}}
 	txCoinbase.SetTxID()
 	return txCoinbase
@@ -41,28 +41,34 @@ func NewSimpleTransaction(from, to string, amount int64, bc *BlockChain, txs []*
 	var txOutputs []*TXOutput
 	balance, spendableUTXO := bc.FindSpendableUTXOs(from, amount, txs)
 
+	//获取钱包
+	wallets := NewWallets()
+	wallet := wallets.WalletsMap[from]
+
 	//代表消费
 	for txID, indexArray := range spendableUTXO {
 		txIDBytes, _ := hex.DecodeString(txID)
 		for _, index := range indexArray {
-			txInput := &TXInput{txIDBytes, index, from}
+			txInput := &TXInput{txIDBytes, index, nil, wallet.PublicKey}
 			txInputs = append(txInputs, txInput)
-
 		}
 	}
 
 	//转账
-	txOutput1 := &TXOutput{amount, to}
+	txOutput1 := NewTXOuput(amount, to)
 	txOutputs = append(txOutputs, txOutput1)
 
 	//找零
-	txOutput2 := &TXOutput{balance - amount, from}
+	txOutput2 := NewTXOuput(balance-amount, from)
 	txOutputs = append(txOutputs, txOutput2)
 
 	tx := &Transaction{[]byte{}, txInputs, txOutputs}
 
 	//设置hash值
 	tx.SetTxID()
+
+	//进行签名
+	bc.SignTransaction(tx, wallet.PrivateKey, txs)
 	return tx
 }
 
@@ -89,7 +95,7 @@ func (tx *Transaction) SetTxID() {
 
 //签名
 //对一笔交易进行签名，需要获取交易输入所引用的输出，因为需要存储这些输出的交易
-func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, PrevTXs map[string]*Transaction) {
+func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]*Transaction) {
 	//如果时coinbase交易，无需签名
 	if tx.IsCoinbaseTransaction() {
 		return
@@ -97,7 +103,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, PrevTXs map[string]*Transa
 
 	//input没有对应的transaction,无法签名
 	for _, vin := range tx.Vins {
-		if prevTxs[hex.EncodeToString(vin.TxID)].TxID == nil {
+		if prevTXs[hex.EncodeToString(vin.TxID)].TxID == nil {
 			log.Panic("当前的input没有对应的transaction")
 		}
 	}
@@ -176,7 +182,7 @@ func (tx *Transaction) Verify(prevTXs map[string]*Transaction) bool {
 		return true
 	}
 	for _, vin := range tx.Vins {
-		if prevTxs[hex.EncodeToString(vin.TxID)].TxID == nil {
+		if prevTXs[hex.EncodeToString(vin.TxID)].TxID == nil {
 			log.Panic("当前的input没有对应的transaction,无法验证。。")
 		}
 	}
@@ -184,11 +190,11 @@ func (tx *Transaction) Verify(prevTXs map[string]*Transaction) bool {
 
 	curve := elliptic.P256()
 	for index, input := range tx.Vins {
-		prevTx := prevTxs[hex.EncodeToString(input.TxID)]
+		prevTx := prevTXs[hex.EncodeToString(input.TxID)]
 		txCopy.Vins[index].Signature = nil
 		txCopy.Vins[index].PublicKey = prevTx.Vouts[input.Vout].PubKeyHash
 		data := txCopy.getData()
-		txCopy.Vins[index].PubllicKey = nil
+		txCopy.Vins[index].PublicKey = nil
 
 		//签名中的s和r
 		r := big.Int{}
@@ -201,8 +207,8 @@ func (tx *Transaction) Verify(prevTXs map[string]*Transaction) bool {
 		x := big.Int{}
 		y := big.Int{}
 		keyLen := len(input.PublicKey)
-		x.SetBytes(input.PubllicKey[:keyLen/2])
-		y.SetBytes(input.PubllicKey[keyLen/2:])
+		x.SetBytes(input.PublicKey[:keyLen/2])
+		y.SetBytes(input.PublicKey[keyLen/2:])
 
 		//根据椭圆曲线，以及x，y获取公钥
 		//我们使用从输入提取的公钥创建了一个 ecdsa.PublicKey
